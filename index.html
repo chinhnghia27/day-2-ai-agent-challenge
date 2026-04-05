@@ -12,6 +12,7 @@
 </head>
 
 <body>
+    <div class="site-wrapper">
     <div class="glow glow-1"></div>
     <div class="glow glow-2"></div>
 
@@ -24,7 +25,7 @@
             <li><a href="#benefits">Lợi ích</a></li>
             <li><a href="#course-content">Nội dung</a></li>
         </ul>
-        <a href="#register" class="btn-nav">ĐĂNG KÝ NGAY ↗</a>
+        <a href="#register" class="btn-nav trigger-modal">ĐĂNG KÝ NGAY ↗</a>
     </nav>
 
     <!-- PHẦN 1: HERO SECTION -->
@@ -51,7 +52,7 @@
             <div class="hero-text-right">
                 <p>Khóa học thực chiến giúp bạn làm chủ hoàn toàn các kỹ năng Edit Video xu hướng trên TikTok, Reels,
                     Shorts chỉ sau 7 ngày.</p>
-                <a href="#register" class="btn-primary">ĐĂNG KÝ NGAY - NHẬN ƯU ĐÃI 50%</a>
+                <a href="#register" class="btn-primary trigger-modal">ĐĂNG KÝ NGAY - NHẬN ƯU ĐÃI 50%</a>
             </div>
         </div>
     </header>
@@ -248,8 +249,8 @@
         <p>Bạn còn chần chừ gì nữa khi cơ hội đột phá doanh thu và bắt kịp xu hướng tương lai đang ở ngay trước mắt? Chỉ
             dành cho 50 người đăng ký sớm nhất trong ngày.</p>
 
-        <div class="price-box" style="margin: 30px auto 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+        <div class="price-box" style="margin: 30px auto 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 100%;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
                 <p style="font-size: 1.5rem; text-decoration: line-through; opacity: 0.6; margin: 0; color: var(--text-secondary); max-width: none;">1.500.000 VNĐ</p>
                 <span style="background: var(--accent-red); color: white; padding: 5px 15px; border-radius: 30px; font-weight: 800; font-size: 1rem; letter-spacing: 1px;">🔥 GIẢM TỚI 66%</span>
             </div>
@@ -258,13 +259,44 @@
             </h3>
         </div>
 
-        <button class="btn-primary large">👉 ĐĂNG KÝ NGAY ĐỂ TRỞ THÀNH MASTER</button>
+        <button class="btn-primary large trigger-modal">👉 ĐĂNG KÝ NGAY ĐỂ TRỞ THÀNH MASTER</button>
     </section>
 
     <footer class="footer">
         <p>&copy; 2026 Developed for CapCut Master Class. Thiết kế độc quyền.</p>
     </footer>
+    <div id="lead-modal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <button class="close-modal">✕</button>
+            <div class="modal-header">
+                <h2 class="text-gradient">Đăng Ký Nhận Ưu Đãi</h2>
+                <p>Để lại thông tin để chuyên viên tư vấn lộ trình học phù hợp nhất với bạn.</p>
+            </div>
+            <form id="lead-form" class="modal-form">
+                <div class="form-group">
+                    <label for="fullname">Họ và tên</label>
+                    <input type="text" id="fullname" name="fullname" placeholder="Nhập tên của bạn..." required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Số điện thoại</label>
+                    <input type="tel" id="phone" name="phone" placeholder="Số điện thoại Zalo..." required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email (Không bắt buộc)</label>
+                    <input type="email" id="email" name="email" placeholder="Địa chỉ email...">
+                </div>
+                <button type="submit" class="btn-primary large full-width">GỬI THÔNG TIN NGAY</button>
+                <p class="form-note">🔒 Thông tin của bạn được bảo mật tuyệt đối.</p>
+            </form>
+            <div id="form-success" class="form-result hidden">
+                <div class="success-icon">✅</div>
+                <h3>Gửi Thành Công!</h3>
+                <p>Cảm ơn bạn đã quan tâm. Chúng tôi sẽ liên hệ lại qua Zalo sớm nhất!</p>
+            </div>
+        </div>
+    </div>
 
+    </div><!-- end .site-wrapper -->
     <script src="main.js"></script>
 </body>
 

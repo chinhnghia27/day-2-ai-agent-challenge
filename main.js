@@ -25,5 +25,84 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollObserver.observe(el);
     });
 
-    console.log("Animation observers initialized successfully. Welcome to CapCut Master!");
+    // --- MODAL & FORM LOGIC ---
+    const modal = document.getElementById('lead-modal');
+    const leadForm = document.getElementById('lead-form');
+    const formSuccess = document.getElementById('form-success');
+    const triggerButtons = document.querySelectorAll('.trigger-modal');
+    const closeButtons = document.querySelectorAll('.close-modal');
+
+    // Open Modal
+    const openModal = (e) => {
+        if (e) e.preventDefault();
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
+    };
+
+    // Close Modal
+    const closeModal = () => {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        // Reset form state after a delay
+        setTimeout(() => {
+            leadForm.classList.remove('hidden');
+            formSuccess.classList.add('hidden');
+            leadForm.reset();
+        }, 500);
+    };
+
+    triggerButtons.forEach(btn => btn.addEventListener('click', openModal));
+    closeButtons.forEach(btn => btn.addEventListener('click', closeModal));
+
+    // Close on click outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Handle Form Submit
+    leadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = leadForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerText;
+        
+        // Form Data
+        const formData = new FormData(leadForm);
+        const data = Object.fromEntries(formData.entries());
+        
+        try {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'ĐANG GỬI...';
+
+            // Google Apps Script URL
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3A4h8qbFJV2u49KWB2kG_XuwuNc0IfDk_fCgOldxvjzcngwWHkWIUu2Zi-Qgd2c0uVg/exec';
+            
+            // Gửi dữ liệu qua fetch API
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Cần thiết khi gửi sang Google Apps Script từ web khác domain
+                body: JSON.stringify(data),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Vì dùng mode 'no-cors', ta không đọc được response body, 
+            // nhưng nếu không có error thì mặc định là thành công.
+            console.log('Dữ liệu đã gửi đến Google Sheets.');
+            
+            // Show Success State
+            leadForm.classList.add('hidden');
+            formSuccess.classList.remove('hidden');
+            
+        } catch (error) {
+            alert('Có lỗi xảy ra, vui lòng thử lại sau hoặc liên hệ trực tiếp qua Zalo.');
+            console.error('Error:', error);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalBtnText;
+        }
+    });
+
+    console.log("Animation observers & Modal logic initialized successfully.");
 });
