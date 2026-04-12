@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Apply starting properties and observe elements
     const elementsToAnimate = document.querySelectorAll('.split-content, .split-image, .stat-item, .glass-card');
-    
+
     elementsToAnimate.forEach((el, index) => {
         el.style.opacity = "0";
         el.style.transform = "translateY(40px)";
@@ -62,21 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Form Submit
     leadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const submitBtn = leadForm.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn.innerText;
-        
+
         // Form Data
         const formData = new FormData(leadForm);
         const data = Object.fromEntries(formData.entries());
-        
+
         try {
             submitBtn.disabled = true;
             submitBtn.innerText = 'ĐANG GỬI...';
 
             // Google Apps Script URL
             const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3A4h8qbFJV2u49KWB2kG_XuwuNc0IfDk_fCgOldxvjzcngwWHkWIUu2Zi-Qgd2c0uVg/exec';
-            
+
             // Gửi dữ liệu qua fetch API
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -90,11 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Vì dùng mode 'no-cors', ta không đọc được response body, 
             // nhưng nếu không có error thì mặc định là thành công.
             console.log('Dữ liệu đã gửi đến Google Sheets.');
-            
+
             // Show Success State
             leadForm.classList.add('hidden');
             formSuccess.classList.remove('hidden');
-            
+
         } catch (error) {
             alert('Có lỗi xảy ra, vui lòng thử lại sau hoặc liên hệ trực tiếp qua Zalo.');
             console.error('Error:', error);
@@ -113,20 +113,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatbotBody = document.getElementById('chatbot-body');
     const chatInput = document.getElementById('chat-input');
     const chatSend = document.getElementById('chat-send');
-    
+
     let chatInitialized = false;
 
     // Helper to non-accent characters
     const removeAccents = (str) => {
         return str.normalize('NFD')
-                  .replace(/[\u0300-\u036f]/g, '')
-                  .replace(/đ/g, 'd')
-                  .replace(/Đ/g, 'D')
-                  .toLowerCase();
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
     };
 
     const qaData = [
-        { keys: ["hello", "hi", "chao", "xin chao", "alo", "he lo", "chao ban", "e", "hey"], a: "Chào bạn nha! Mình là trợ lý ảo của Nghĩa đây. Bạn cần hỗ trợ gì về lịch học, ưu đãi hay khóa học CapCut thực chiến thì cứ gõ thẳng vô đây nhé!" },
         { keys: ["may tinh", "cau hinh", "iphone", "android", "dien thoai", "lap", "pc", "can gi", "dung gi", "bang gi"], a: "Hoàn toàn không bạn nha! Tụi mình sẽ thực chiến 100% trên điện thoại luôn (cả iOS lẫn Android). Bạn cứ nằm trên giường cầm điện thoại vẫn ra được video xịn, không cần đụng đến máy tính nặng nề đâu." },
         { keys: ["mu cong nghe", "khong ranh", "chua biet", "nguoi moi", "moi bat dau", "kho khong", "lam duoc khong", "kem", "chua hieu"], a: "Chắc chắn là được nè! Nghĩa thiết kế lộ trình này siêu đơn giản luôn, giống như có người cầm tay chỉ việc vậy đó. Mọi thứ đều có quy trình rõ ràng từng bước. Đặc biệt là bạn sẽ được add vô nhóm kín, vướng chỗ nào chụp màn hình gửi lên là có người gỡ rối liền." },
         { keys: ["bao lau", "thoi gian", "ban ron", "moi ngay", "may tieng", "bao nhieu phut", "toi ban", "hay ban"], a: "Học đi đôi với hành bạn nhé, không lý thuyết suông đâu! Khóa học tinh gọn lắm, mỗi bài chưa tới 10 phút. Bạn cứ tận dụng lúc đi xe bus hay nghỉ trưa xem rồi lôi điện thoại ra làm theo luôn. Cứ túc tắc vài hôm tay nghề sẽ lên thấy rõ à." },
@@ -136,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { keys: ["qua tang", "bonus", "sfx", "am thanh", "ebook", "kich ban", "duoc tang", "co gi them"], a: "Đăng ký khóa học bạn sẽ gói mang về trọn combo: Bộ 500+ Sound Effects chuẩn trend, Ebook 50 ý tưởng kịch bản cực cuốn, và Cấp quyền vào nhóm VIP hỗ trợ 1 kèm 1." },
         { keys: ["gia", "gia ca", "bao nhieu", "bao tien", "tien", "hoc phi", "chi phi", "uu dai", "giam gia", "khuyen mai", "tong cong", "mat tien khong", "phi", "thanh tien"], a: "Khóa học thực chiến này đang có ưu đãi 66%, chỉ còn 499.000 VNĐ. Tính ra nhịn một chầu ăn vặt cuối tuần là bạn đã sở hữu một quy trình làm nghề nghiêm túc có thể tận dụng lâu dài luôn rồi á." },
         { keys: ["quang cao", "chay ads", "bot", "hack", "buff"], a: "Tụi mình tập trung vào học tư duy dựng video và phân bố kịch bản tốt để kéo view tự nhiên. Xây content mộc tự nhiên đang là phong cách cực trend mà lại không tốn thêm đồng nào cho nền tảng nha!" },
-        
+
         // --- 4 Nhóm Bổ Sung Từ Nội Dung Khóa Học ---
         { keys: ["giat giat", "chuyen canh", "ky xao", "keyframe", "effect", "mask", "tracking", "hieu ung", "ao dieu"], a: "Khóa học có hẳn một chương chuyên sâu về Kỹ xảo nhé! Bạn sẽ làm chủ được Keyframe, Auto Tracking, Mask và các hiệu ứng chuyển cảnh siêu mượt mà không thua kém gì edit trên máy tính đâu." },
         { keys: ["phu de", "caption", "chu chay", "khu on", "tap am", "long tieng", "thu am", "chinh mau", "mau sac", "mau video"], a: "Chắc chắn rồi! Trong khoá có bài hướng dẫn chi tiết cách tự hiển thị phụ đề (Auto-Caption) chuẩn Idol. Kèm theo kỹ thuật căn chỉnh màu sắc tự nhiên, lồng tiếng và khử tạp âm sạch sẽ để video của bạn trông như được sản xuất ở studio vậy." },
@@ -146,21 +147,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         { keys: ["dang nhap", "tai khoan", "thanh toan xong", "cach hoc", "hoc nhu the nao", "khi nao duoc hoc", "thanh toan", "chuyen khoan xong"], a: "Thanh toán xong là hệ thống tự động mở tài khoản cho bạn luôn. Có email và Zalo gửi thông tin đăng nhập vô tận tay bạn." },
         { keys: ["mua", "dang ky", "chot", "link", "muon hoc", "dk", "tham gia", "huong dan dk", "muon", "dang ki"], a: "Hiện tại bên mình chỉ còn lại vài suất giữ mức giá 499.000đ cùng toàn bộ gói quà khủng. Thấy phù hợp thì bấm nút đăng ký nha, Nghĩa đang đợi bạn ở trong nhóm hỗ trợ kín rồi nè!", action: "buy" },
-        { keys: ["suy nghi", "tu tu", "chu", "de sau", "chua mua", "tu van", "de xem", "nghi lai", "xem lai", "ban khoan", "nghi them", "chua quyet"], a: "Mình rất hiểu để bắt đầu học thứ mới luôn cần xíu thời gian để xem xét kĩ lưỡng. Bạn cứ để lại xíu thông tin qua form bên dưới nha. Khi nào có nội dung thú vị hay có update bài mẫu thì Nghĩa mới nhẹ nhàng gõ cửa báo bạn nghen!", action: "lead" }
+        { keys: ["suy nghi", "tu tu", "chu", "de sau", "chua mua", "tu van", "de xem", "nghi lai", "xem lai", "ban khoan", "nghi them", "chua quyet"], a: "Mình rất hiểu để bắt đầu học thứ mới luôn cần xíu thời gian để xem xét kĩ lưỡng. Bạn cứ để lại xíu thông tin qua form bên dưới nha. Khi nào có nội dung thú vị hay có update bài mẫu thì Nghĩa mới nhẹ nhàng gõ cửa báo bạn nghen!", action: "lead" },
+
+        // Đưa nhóm Chào hỏi (Greeting) xuống vị trí cuối cùng ưu tiên thấp để không chặn các câu hỏi chính (VD: "Chào bạn, khóa này giá bao nhiêu" -> sẽ chạy vào Giá chứ không kẹt ở Chào hỏi)
+        { keys: ["hello", "hi", "chao", "xin chao", "alo", "he lo", "chao ban", "hey", "e bot"], a: "Chào bạn nha! Mình là trợ lý ảo của Nghĩa đây. Bạn cần hỗ trợ gì về lịch học, ưu đãi hay khóa học CapCut thực chiến thì cứ gõ thẳng vô đây nhé!" }
     ];
 
     const getBotResponse = (text) => {
         const cleanText = removeAccents(text);
-        
+
         // Find best match
         for (let qa of qaData) {
             for (let key of qa.keys) {
-                if (cleanText.includes(key)) {
+                // Dùng Regex biên từ (word boundary) để tránh việc chữ "hi" (chào) 
+                // lại match trùng với từ "chi pHI", "hoc pHI"...
+                const regex = new RegExp("\\b" + key + "\\b", "i");
+                if (regex.test(cleanText)) {
                     return { text: qa.a, action: qa.action || null };
                 }
             }
         }
-        
+
         // Fallback
         return { text: "Dạ, hiện tại chatbot chưa nắm rõ ý này lắm. Bạn có thể hỏi cụ thể hơn về Giá cả, Quà tặng, Thời gian học hay Máy tính/Điện thoại nhé! Hoặc bấm Đăng Ký để trò chuyện với team Zalo tụi mình.", action: "lead" };
     }
@@ -170,16 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
         msgDiv.className = `chat-msg ${type === 'bot' ? 'chat-bot' : 'chat-user'}`;
         msgDiv.innerText = text;
         chatbotBody.appendChild(msgDiv);
-        
+
         if (action === 'buy' || action === 'lead') {
             const btn = document.createElement('button');
             btn.className = 'chat-action-btn';
-            
+
             if (action === 'buy') {
                 btn.innerText = 'ĐĂNG KÝ NGAY 🚀';
                 btn.addEventListener('click', () => {
                     const modal = document.getElementById('lead-modal');
-                    if(modal) {
+                    if (modal) {
                         modal.classList.add('active');
                         document.body.style.overflow = 'hidden';
                     }
@@ -196,17 +203,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
-            
+
             chatbotBody.appendChild(btn);
         }
-        
+
         chatbotBody.scrollTop = chatbotBody.scrollHeight;
     };
 
     const handleSendMessage = () => {
         const text = chatInput.value.trim();
         if (!text) return;
-        
+
         // Add user message
         addMessage(text, 'user');
         chatInput.value = '';
