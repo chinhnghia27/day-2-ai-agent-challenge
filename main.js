@@ -79,11 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
             submitBtn.innerText = 'ĐANG XỬ LÝ...';
 
-            // Payment info
+            // Bước 1: Gọi API tạo đơn hàng pending
+            const checkoutRes = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const checkoutData = await checkoutRes.json();
+
+            if (!checkoutData.success) {
+                throw new Error(checkoutData.error || 'Checkout failed');
+            }
+
+            // Payment info - Tạo QR
             const orderCode = 'CAPCUTMASTER';
             const bank = 'BIDV';
             const acc = '96247NGHIA27';
-            // Generate VietQR dynamic link via Sepay (no hardcoded amount)
             const qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&des=${orderCode}`;
 
             document.getElementById('qr-code-img').src = qrUrl;
@@ -95,20 +106,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalHeader) modalHeader.classList.add('hidden');
             document.getElementById('checkout-step').classList.remove('hidden');
 
-            document.getElementById('btn-payment-done').onclick = () => {
+            // Bước 2: Bấm "TÔI ĐÃ CHUYỂN KHOẢN" → cập nhật trạng thái sang success
+            document.getElementById('btn-payment-done').onclick = async () => {
+                try {
+                    await fetch(`/api/checkout/${checkoutData.orderId}/confirm`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } catch (err) { console.error('Confirm error:', err); }
+
                 document.getElementById('checkout-step').classList.add('hidden');
                 document.getElementById('payment-success').classList.remove('hidden');
             };
 
-            // Continue sending data to Google Sheets
+            // Gửi song song data sang Google Sheets (backup)
             const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3A4h8qbFJV2u49KWB2kG_XuwuNc0IfDk_fCgOldxvjzcngwWHkWIUu2Zi-Qgd2c0uVg/exec';
             fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 body: JSON.stringify({ ...data, orderCode: orderCode }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' }
             }).catch(console.error);
 
         } catch (error) {

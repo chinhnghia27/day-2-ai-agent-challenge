@@ -133,5 +133,66 @@ app.delete('/api/orders/:id', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// --------------------------------------------------------
+// Seed sản phẩm mặc định (Khóa học CapCut)
+// --------------------------------------------------------
+const existingProduct = db.prepare("SELECT id FROM products WHERE name = ?").get('Khóa học CapCut Master');
+if (!existingProduct) {
+    db.prepare("INSERT INTO products (name, price, description, stock) VALUES (?, ?, ?, ?)").run(
+        'Khóa học CapCut Master', 499000, 'Thực chiến Edit Video đa phong cách cùng CapCut', 100
+    );
+    console.log('Seeded default product: Khóa học CapCut Master');
+}
+
+// --------------------------------------------------------
+// API Checkout (Frontend gọi khi khách đặt hàng)
+// --------------------------------------------------------
+
+// Bước 1: Khách submit form → tạo customer + đơn hàng pending
+app.post('/api/checkout', (req, res) => {
+    try {
+        const { fullname, phone, email } = req.body;
+
+        // Tìm hoặc tạo customer
+        let customer = db.prepare("SELECT id FROM customers WHERE phone = ?").get(phone);
+        if (!customer) {
+            const result = db.prepare("INSERT INTO customers (name, phone, zalo) VALUES (?, ?, ?)").run(fullname, phone, phone);
+            customer = { id: result.lastInsertRowid };
+        }
+
+        // Lấy sản phẩm mặc định (CapCut)
+        const product = db.prepare("SELECT id, price FROM products LIMIT 1").get();
+        if (!product) {
+            return res.status(400).json({ error: 'No product found' });
+        }
+
+        // Tạo đơn hàng pending
+        const order = db.prepare("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, 'pending')").run(
+            customer.id, product.id, product.price
+        );
+
+        res.json({
+            success: true,
+            orderId: order.lastInsertRowid,
+            customerId: customer.id,
+            amount: product.price
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Bước 2: Khách bấm "Tôi đã chuyển khoản" → chuyển trạng thái sang success
+app.put('/api/checkout/:id/confirm', (req, res) => {
+    try {
+        const order = db.prepare("SELECT id, product_id FROM orders WHERE id = ?").get(req.params.id);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        db.prepare("UPDATE orders SET status = 'success' WHERE id = ?").run(req.params.id);
+        // Trừ tồn kho
+        db.prepare("UPDATE products SET stock = stock - 1 WHERE id = ?").run(order.product_id);
+
+        res.json({ success: true, message: 'Payment confirmed' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
