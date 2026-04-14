@@ -1,0 +1,26 @@
+{
+  "name": "day-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chinhnghia27/day-2-ai-agent-challenge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chinhnghia27/day-2-ai-agent-challenge/issues"
+  },
+  "homepage": "https://github.com/chinhnghia27/day-2-ai-agent-challenge#readme",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "express": "^5.2.1",
+    "sqlite3": "^6.0.1"
+  }
+}

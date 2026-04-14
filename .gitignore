@@ -1,0 +1,5 @@
+node_modules/
+.env
+*.pyc
+check_db.py
+setup_db.py
