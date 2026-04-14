@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const app = express();
 
@@ -7,10 +7,9 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // Connect DB
-const db = new sqlite3.Database(path.join(__dirname, 'brain.db'), (err) => {
-    if (err) console.error('Lỗi khi mở database:', err.message);
-    else console.log('Đã kết nối brain.db');
-});
+const db = new Database(path.join(__dirname, 'brain.db'));
+db.pragma('journal_mode = WAL');
+console.log('Connected to brain.db');
 
 // Phục vụ trang admin
 app.get('/admin', (req, res) => {
@@ -18,122 +17,120 @@ app.get('/admin', (req, res) => {
 });
 
 // --------------------------------------------------------
-// API Sản phầm (Products)
+// API Sản phẩm (Products)
 // --------------------------------------------------------
 app.get('/api/products', (req, res) => {
-    db.all("SELECT * FROM products", (err, rows) => {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        const rows = db.prepare("SELECT * FROM products").all();
         res.json(rows);
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/products', (req, res) => {
-    const { name, price, description, stock } = req.body;
-    db.run("INSERT INTO products (name, price, description, stock) VALUES (?, ?, ?, ?)", [name, price, description, stock || 0], function(err) {
-        if (err) return res.status(500).json({error: err.message});
-        res.json({ id: this.lastID, name, price, description, stock });
-    });
+    try {
+        const { name, price, description, stock } = req.body;
+        const result = db.prepare("INSERT INTO products (name, price, description, stock) VALUES (?, ?, ?, ?)").run(name, price, description, stock || 0);
+        res.json({ id: result.lastInsertRowid, name, price, description, stock });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.put('/api/products/:id', (req, res) => {
-    const { name, price, description, stock } = req.body;
-    db.run("UPDATE products SET name = ?, price = ?, description = ?, stock = ? WHERE id = ?", [name, price, description, stock, req.params.id], function(err) {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        const { name, price, description, stock } = req.body;
+        db.prepare("UPDATE products SET name = ?, price = ?, description = ?, stock = ? WHERE id = ?").run(name, price, description, stock, req.params.id);
         res.json({ message: "Updated" });
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.delete('/api/products/:id', (req, res) => {
-    db.run("DELETE FROM products WHERE id = ?", req.params.id, function(err) {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        db.prepare("DELETE FROM products WHERE id = ?").run(req.params.id);
         res.json({ message: "Deleted" });
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // --------------------------------------------------------
 // API Khách hàng (Customers)
 // --------------------------------------------------------
 app.get('/api/customers', (req, res) => {
-    db.all("SELECT * FROM customers", (err, rows) => {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        const rows = db.prepare("SELECT * FROM customers").all();
         res.json(rows);
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/customers', (req, res) => {
-    const { name, phone, zalo } = req.body;
-    db.run("INSERT INTO customers (name, phone, zalo) VALUES (?, ?, ?)", [name, phone, zalo || phone], function(err) {
-        if (err) return res.status(500).json({error: err.message});
-        res.json({ id: this.lastID, name, phone, zalo });
-    });
+    try {
+        const { name, phone, zalo } = req.body;
+        const result = db.prepare("INSERT INTO customers (name, phone, zalo) VALUES (?, ?, ?)").run(name, phone, zalo || phone);
+        res.json({ id: result.lastInsertRowid, name, phone, zalo });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.put('/api/customers/:id', (req, res) => {
-    const { name, phone, zalo } = req.body;
-    db.run("UPDATE customers SET name = ?, phone = ?, zalo = ? WHERE id = ?", [name, phone, zalo, req.params.id], function(err) {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        const { name, phone, zalo } = req.body;
+        db.prepare("UPDATE customers SET name = ?, phone = ?, zalo = ? WHERE id = ?").run(name, phone, zalo, req.params.id);
         res.json({ message: "Updated" });
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.delete('/api/customers/:id', (req, res) => {
-    db.run("DELETE FROM customers WHERE id = ?", req.params.id, function(err) {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        db.prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
         res.json({ message: "Deleted" });
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // --------------------------------------------------------
 // API Đơn hàng (Orders)
 // --------------------------------------------------------
 app.get('/api/orders', (req, res) => {
-    const query = `
-        SELECT o.id, o.amount, o.status, o.order_date,
-               c.name as customer_name, c.phone as customer_phone,
-               p.name as product_name
-        FROM orders o
-        LEFT JOIN customers c ON o.customer_id = c.id
-        LEFT JOIN products p ON o.product_id = p.id
-    `;
-    db.all(query, (err, rows) => {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        const query = `
+            SELECT o.id, o.amount, o.status, o.order_date,
+                   c.name as customer_name, c.phone as customer_phone,
+                   p.name as product_name
+            FROM orders o
+            LEFT JOIN customers c ON o.customer_id = c.id
+            LEFT JOIN products p ON o.product_id = p.id
+        `;
+        const rows = db.prepare(query).all();
         res.json(rows);
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Logic: Khi add order mới -> trừ tồn kho của sản phẩm
 app.post('/api/orders', (req, res) => {
-    const { customer_id, product_id, amount, status } = req.body;
-    db.serialize(() => {
-        db.run("BEGIN TRANSACTION");
-        db.run("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)", [customer_id, product_id, amount, status || 'pending'], function(err) {
-            if (err) {
-                db.run("ROLLBACK");
-                return res.status(500).json({error: err.message});
-            }
-            const orderId = this.lastID;
-            // Tự động trừ số lượng sản phẩm còn lại
-            db.run("UPDATE products SET stock = stock - 1 WHERE id = ?", [product_id], function(upErr) {
-                if (upErr) {
-                    db.run("ROLLBACK");
-                    return res.status(500).json({error: upErr.message});
-                }
-                db.run("COMMIT");
-                res.json({ id: orderId, message: "Order created and stock reduced" });
-            });
+    try {
+        const { customer_id, product_id, amount, status } = req.body;
+        const insertOrder = db.prepare("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)");
+        const reduceStock = db.prepare("UPDATE products SET stock = stock - 1 WHERE id = ?");
+
+        const transaction = db.transaction(() => {
+            const result = insertOrder.run(customer_id, product_id, amount, status || 'pending');
+            reduceStock.run(product_id);
+            return result.lastInsertRowid;
         });
-    });
+
+        const orderId = transaction();
+        res.json({ id: orderId, message: "Order created and stock reduced" });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put('/api/orders/:id', (req, res) => {
-    const { status } = req.body;
-    // Chỉnh sửa nhanh trạng thái
-    db.run("UPDATE orders SET status = ? WHERE id = ?", [status, req.params.id], function(err) {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        const { status } = req.body;
+        db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, req.params.id);
         res.json({ message: "Updated" });
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.delete('/api/orders/:id', (req, res) => {
-    // Trả lại tồn kho nếu cần? (Yêu cầu làm đơn giản nên có thể bỏ qua hoặc làm sau)
-    db.run("DELETE FROM orders WHERE id = ?", req.params.id, function(err) {
-        if (err) return res.status(500).json({error: err.message});
+    try {
+        db.prepare("DELETE FROM orders WHERE id = ?").run(req.params.id);
         res.json({ message: "Deleted" });
-    });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 3000;

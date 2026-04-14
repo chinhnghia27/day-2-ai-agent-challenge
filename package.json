@@ -19,8 +19,7 @@
   },
   "homepage": "https://github.com/chinhnghia27/day-2-ai-agent-challenge#readme",
   "dependencies": {
-    "body-parser": "^2.2.2",
-    "express": "^5.2.1",
-    "sqlite3": "^6.0.1"
+    "better-sqlite3": "^12.9.0",
+    "express": "^5.2.1"
   }
 }
