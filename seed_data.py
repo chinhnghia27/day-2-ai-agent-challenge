@@ -37,16 +37,20 @@ try:
     if product:
         product_id, price = product
         
-        # 3. Thêm 2 đơn hàng mẫu
-        # Đơn 1: Success
-        cursor.execute("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)",
-                       (customer_ids[0], product_id, price, 'success'))
+        # 3. Them 2 don hang mau
+        # Don 1: Success - Kiem tra xem da co don success nao cua khach nay chua
+        cursor.execute("SELECT id FROM orders WHERE customer_id = ? AND product_id = ? AND status = 'success'", (customer_ids[0], product_id))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)",
+                           (customer_ids[0], product_id, price, 'success'))
         
-        # Đơn 2: Pending
-        cursor.execute("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)",
-                       (customer_ids[1], product_id, price, 'pending'))
+        # Don 2: Pending - Kiem tra xem da co don pending nao cua khach nay chua
+        cursor.execute("SELECT id FROM orders WHERE customer_id = ? AND product_id = ? AND status = 'pending'", (customer_ids[1], product_id))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)",
+                           (customer_ids[1], product_id, price, 'pending'))
         
-        print("Da we thiem 2 khach hang va 2 don hang mau thanh cong.")
+        print("Da thiet lap du lieu mau (khong trung lap) thanh cong.")
     else:
         print("Loi: Khong tim thay san pham 'Khoa hoc CapCut Master' de tao don hang mau.")
 
