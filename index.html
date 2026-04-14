@@ -327,7 +327,7 @@
         <div id="lead-modal" class="modal-overlay">
             <div class="modal-content glass-card">
                 <button class="close-modal">✕</button>
-                <div class="modal-header">
+                <div id="modal-header" class="modal-header">
                     <h2 class="text-gradient">Đăng Ký Nhận Ưu Đãi</h2>
                     <p>Để lại thông tin để chuyên viên tư vấn lộ trình học phù hợp nhất với bạn.</p>
                 </div>
@@ -347,10 +347,23 @@
                     <button type="submit" class="btn-primary large full-width">GỬI THÔNG TIN NGAY</button>
                     <p class="form-note">🔒 Thông tin của bạn được bảo mật tuyệt đối.</p>
                 </form>
-                <div id="form-success" class="form-result hidden">
-                    <div class="success-icon">✅</div>
-                    <h3>Gửi Thành Công!</h3>
-                    <p>Cảm ơn bạn đã quan tâm. Chúng tôi sẽ liên hệ lại qua Zalo sớm nhất!</p>
+                <div id="checkout-step" class="form-result hidden" style="text-align: center;">
+                    <h3 class="text-gradient" style="margin-bottom: 5px;">Thanh Toán Đơn Hàng</h3>
+                    <p>Khóa học: Thực Chiến Edit Video CapCut</p>
+                    <div class="price-box" style="margin: 15px 0;">
+                        <h3 style="font-size: 2rem; color: var(--accent-orange); margin: 0;">499.000 VNĐ</h3>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 10px; display: inline-block; margin-bottom: 20px;">
+                        <img id="qr-code-img" src="" alt="QR Code Thanh Toán" style="width: 250px; height: 250px;">
+                    </div>
+                    <p class="form-note">Mở app ngân hàng để quét mã QR.<br>Nội dung chuyển khoản: <strong id="transfer-code" style="color: white; font-size: 1.1rem; letter-spacing: 1px;"></strong></p>
+                    <button id="btn-payment-done" class="btn-primary full-width" style="margin-top: 15px;">TÔI ĐÃ CHUYỂN KHOẢN</button>
+                    <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 10px;">Hệ thống sẽ cập nhật trạng thái đơn hàng sau ít phút.</p>
+                </div>
+                <div id="payment-success" class="form-result hidden">
+                    <div class="success-icon">🎉</div>
+                    <h3>Thanh Toán Thành Công!</h3>
+                    <p>Chào mừng bạn đến với khóa học. Thông tin đăng nhập sẽ được gửi qua Zalo/Email của bạn trong ít phút.</p>
                 </div>
             </div>
         </div>

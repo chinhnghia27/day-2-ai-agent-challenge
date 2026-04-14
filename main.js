@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MODAL & FORM LOGIC ---
     const modal = document.getElementById('lead-modal');
     const leadForm = document.getElementById('lead-form');
-    const formSuccess = document.getElementById('form-success');
+    // const formSuccess = document.getElementById('form-success');
     const triggerButtons = document.querySelectorAll('.trigger-modal');
     const closeButtons = document.querySelectorAll('.close-modal');
 
@@ -46,7 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset form state after a delay
         setTimeout(() => {
             leadForm.classList.remove('hidden');
-            formSuccess.classList.add('hidden');
+            const modalHeader = document.getElementById('modal-header');
+            if (modalHeader) modalHeader.classList.remove('hidden');
+            const checkoutStep = document.getElementById('checkout-step');
+            const paymentSuccess = document.getElementById('payment-success');
+            if(checkoutStep) checkoutStep.classList.add('hidden');
+            if(paymentSuccess) paymentSuccess.classList.add('hidden');
             leadForm.reset();
         }, 500);
     };
@@ -72,31 +77,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             submitBtn.disabled = true;
-            submitBtn.innerText = 'ĐANG GỬI...';
+            submitBtn.innerText = 'ĐANG XỬ LÝ...';
 
-            // Google Apps Script URL
+            // Payment info
+            const orderCode = 'CAPCUTMASTER';
+            const bank = 'BIDV';
+            const acc = '8888558242';
+            // Generate VietQR dynamic link via Sepay (no hardcoded amount)
+            const qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&des=${orderCode}`;
+
+            document.getElementById('qr-code-img').src = qrUrl;
+            document.getElementById('transfer-code').innerText = orderCode;
+
+            // Show Checkout Step
+            leadForm.classList.add('hidden');
+            const modalHeader = document.getElementById('modal-header');
+            if (modalHeader) modalHeader.classList.add('hidden');
+            document.getElementById('checkout-step').classList.remove('hidden');
+
+            document.getElementById('btn-payment-done').onclick = () => {
+                document.getElementById('checkout-step').classList.add('hidden');
+                document.getElementById('payment-success').classList.remove('hidden');
+            };
+
+            // Continue sending data to Google Sheets
             const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3A4h8qbFJV2u49KWB2kG_XuwuNc0IfDk_fCgOldxvjzcngwWHkWIUu2Zi-Qgd2c0uVg/exec';
-
-            // Gửi dữ liệu qua fetch API
-            const response = await fetch(SCRIPT_URL, {
+            fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Cần thiết khi gửi sang Google Apps Script từ web khác domain
-                body: JSON.stringify(data),
+                mode: 'no-cors',
+                body: JSON.stringify({...data, orderCode: orderCode}),
                 headers: {
                     'Content-Type': 'application/json'
                 }
-            });
-
-            // Vì dùng mode 'no-cors', ta không đọc được response body, 
-            // nhưng nếu không có error thì mặc định là thành công.
-            console.log('Dữ liệu đã gửi đến Google Sheets.');
-
-            // Show Success State
-            leadForm.classList.add('hidden');
-            formSuccess.classList.remove('hidden');
+            }).catch(console.error);
 
         } catch (error) {
-            alert('Có lỗi xảy ra, vui lòng thử lại sau hoặc liên hệ trực tiếp qua Zalo.');
+            alert('Có lỗi xảy ra, vui lòng thử lại sau.');
             console.error('Error:', error);
         } finally {
             submitBtn.disabled = false;
