@@ -11,21 +11,23 @@ conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
 try:
-    # 1. Thêm 2 khách hàng mẫu
+    # 1. Them 2 khach hang mau (dung ten that)
     customers = [
-        ('Nguyễn Văn A', '0912345678', '0912345678'),
-        ('Trần Thị B', '0987654321', '0987654321')
+        ('Nghiem Chinh Nghia', '0912345678', '0912345678'),
+        ('Hoang Thu Ha', '0987654321', '0987654321')
     ]
     
     customer_ids = []
     for c in customers:
-        # Kiểm tra nếu khách hàng đã tồn tại (theo SĐT)
+        # Kiem tra neu khach hang da ton tai (theo SDT)
         cursor.execute("SELECT id FROM customers WHERE phone = ?", (c[1],))
         existing = cursor.fetchone()
         if not existing:
             cursor.execute("INSERT INTO customers (name, phone, zalo) VALUES (?, ?, ?)", c)
             customer_ids.append(cursor.lastrowid)
         else:
+            # Neu ton tai thi update lai ten cho giong ten THAT
+            cursor.execute("UPDATE customers SET name = ? WHERE id = ?", (c[0], existing[0]))
             customer_ids.append(existing[0])
 
     # 2. Lấy ID sản phẩm mẫu (Khóa học CapCut Master)
