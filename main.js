@@ -106,18 +106,43 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalHeader) modalHeader.classList.add('hidden');
             document.getElementById('checkout-step').classList.remove('hidden');
 
-            // Bước 2: Bấm "TÔI ĐÃ CHUYỂN KHOẢN" → cập nhật trạng thái sang success
-            document.getElementById('btn-payment-done').onclick = async () => {
-                try {
-                    await fetch(`/api/checkout/${checkoutData.orderId}/confirm`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                } catch (err) { console.error('Confirm error:', err); }
+            // Setup polling for payment confirmation
+            const paymentBtn = document.getElementById('btn-payment-done');
+            paymentBtn.disabled = true;
+            paymentBtn.style.opacity = '0.5';
+            paymentBtn.style.cursor = 'not-allowed';
+            paymentBtn.innerText = '⏳ ĐANG ĐỢI THANH TOÁN...';
 
-                document.getElementById('checkout-step').classList.add('hidden');
-                document.getElementById('payment-success').classList.remove('hidden');
-            };
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/checkout/${checkoutData.orderId}/status`);
+                    const statusData = await response.json();
+
+                    if (statusData.status === 'success') {
+                        clearInterval(pollInterval);
+                        
+                        // Enable button for user to proceed
+                        paymentBtn.disabled = false;
+                        paymentBtn.style.opacity = '1';
+                        paymentBtn.style.cursor = 'pointer';
+                        paymentBtn.style.background = '#22c55e'; // Green success color
+                        paymentBtn.innerText = '✅ ĐÃ NHẬN TIỀN - TIẾP TỤC';
+                        
+                        paymentBtn.onclick = () => {
+                            document.getElementById('checkout-step').classList.add('hidden');
+                            document.getElementById('payment-success').classList.remove('hidden');
+                        };
+                    }
+                } catch (err) {
+                    console.error('Polling error:', err);
+                }
+            }, 3000);
+
+            // Cleanup polling if modal is closed manually
+            const modalCloseBtns = document.querySelectorAll('.close-modal');
+            modalCloseBtns.forEach(btn => {
+                btn.addEventListener('click', () => clearInterval(pollInterval), { once: true });
+            });
 
             // Gửi song song data sang Google Sheets (backup)
             const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3A4h8qbFJV2u49KWB2kG_XuwuNc0IfDk_fCgOldxvjzcngwWHkWIUu2Zi-Qgd2c0uVg/exec';

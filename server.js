@@ -194,5 +194,52 @@ app.put('/api/checkout/:id/confirm', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// --------------------------------------------------------
+// API Polling: Frontend check trạng thái đơn hàng
+// --------------------------------------------------------
+app.get('/api/checkout/:id/status', (req, res) => {
+    try {
+        const order = db.prepare("SELECT id, status FROM orders WHERE id = ?").get(req.params.id);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        res.json({ orderId: order.id, status: order.status });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// --------------------------------------------------------
+// Sepay Webhook: Nhận thông báo giao dịch từ Sepay
+// --------------------------------------------------------
+app.post('/api/sepay-webhook', (req, res) => {
+    try {
+        const { id, transferType, transferAmount, content, code, referenceCode } = req.body;
+
+        console.log(`[Sepay Webhook] Received transaction ID: ${id}, Amount: ${transferAmount}, Content: ${content}`);
+
+        // Chỉ xử lý tiền vào (in)
+        if (transferType !== 'in') {
+            console.log(`[Sepay Webhook] Ignored non-inbound transaction type: ${transferType}`);
+            return res.status(200).json({ success: true });
+        }
+
+        // Tìm đơn hàng pending gần nhất
+        // Lưu ý: Logic đơn giản này sẽ khớp giao dịch gần nhất với đơn hàng pending gần nhất.
+        const pendingOrder = db.prepare(
+            "SELECT id, product_id FROM orders WHERE status = 'pending' ORDER BY id DESC LIMIT 1"
+        ).get();
+
+        if (pendingOrder) {
+            db.prepare("UPDATE orders SET status = 'success' WHERE id = ?").run(pendingOrder.id);
+            db.prepare("UPDATE products SET stock = stock - 1 WHERE id = ?").run(pendingOrder.product_id);
+            console.log(`[Sepay Webhook] Order #${pendingOrder.id} matches transaction and marked as SUCCESS.`);
+        } else {
+            console.log(`[Sepay Webhook] No pending orders found to match this transaction.`);
+        }
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('[Sepay Webhook Error]:', err);
+        res.status(200).json({ success: true });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
