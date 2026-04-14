@@ -50,8 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalHeader) modalHeader.classList.remove('hidden');
             const checkoutStep = document.getElementById('checkout-step');
             const paymentSuccess = document.getElementById('payment-success');
-            if(checkoutStep) checkoutStep.classList.add('hidden');
-            if(paymentSuccess) paymentSuccess.classList.add('hidden');
+            if (checkoutStep) checkoutStep.classList.add('hidden');
+            if (paymentSuccess) paymentSuccess.classList.add('hidden');
             leadForm.reset();
         }, 500);
     };
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Payment info
             const orderCode = 'CAPCUTMASTER';
             const bank = 'BIDV';
-            const acc = '8888558242';
+            const acc = '96247NGHIA27';
             // Generate VietQR dynamic link via Sepay (no hardcoded amount)
             const qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&des=${orderCode}`;
 
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                body: JSON.stringify({...data, orderCode: orderCode}),
+                body: JSON.stringify({ ...data, orderCode: orderCode }),
                 headers: {
                     'Content-Type': 'application/json'
                 }
