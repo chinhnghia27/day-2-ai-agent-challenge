@@ -20,6 +20,7 @@
   "homepage": "https://github.com/chinhnghia27/day-2-ai-agent-challenge#readme",
   "dependencies": {
     "better-sqlite3": "^12.9.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "resend": "^6.11.0"
   }
 }

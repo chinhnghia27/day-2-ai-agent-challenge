@@ -1,10 +1,54 @@
 const express = require('express');
+const { Resend } = require('resend');
 const Database = require('better-sqlite3');
 const path = require('path');
+
 const app = express();
+const resend = new Resend('re_7fRECU62_5yH1Jpt7hc4tsQb6xno1tKNG');
 
 app.use(express.json());
 app.use(express.static(__dirname));
+
+// --- Email Helper ---
+async function sendOrderSuccessEmail(customerEmail, customerName) {
+    if (!customerEmail) return;
+    try {
+        await resend.emails.send({
+            from: 'CapCut Master <onboarding@resend.dev>',
+            to: [customerEmail],
+            subject: '🎉 Chào mừng bạn đến với Khóa học CapCut Master!',
+            html: `
+                <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
+                    <h1 style="color: #ff7d3b;">Chào ${customerName}!</h1>
+                    <p>Cảm ơn bạn đã hoàn tất đăng ký khóa học <strong>CapCut Master</strong>.</p>
+                    <p>Chúc mừng bạn đã sở hữu lộ trình thực chiến edit video trên điện thoại từ A-Z!</p>
+                    <div style="background: #fdf2f2; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <h3 style="margin-top: 0;">📚 Bước tiếp theo dành cho bạn:</h3>
+                        <ol>
+                            <li>Tham gia nhóm hỗ trợ Zalo: <a href="#">[Link Nhóm]</a></li>
+                            <li>Tải tài liệu Sound Effects & Ebook đính kèm</li>
+                            <li>Truy cập bài học đầu tiên tại: <a href="#">[Link Khóa Học]</a></li>
+                        </ol>
+                    </div>
+                    <p>Chúc bạn có những giây phút sáng tạo tuyệt vời!</p>
+                    <p><em>Nghĩa Chính Nghĩa</em></p>
+                </div>
+            `
+        });
+        console.log(`Email sent successfully to ${customerEmail}`);
+    } catch (error) {
+        console.error('Resend Error:', error);
+    }
+}
+
+function getCustomerByOrderId(orderId) {
+    return db.prepare(`
+        SELECT c.name, c.email 
+        FROM customers c 
+        JOIN orders o ON c.id = o.customer_id 
+        WHERE o.id = ?
+    `).get(orderId);
+}
 
 // Connect DB
 const db = new Database(path.join(__dirname, 'brain.db'));
@@ -61,16 +105,16 @@ app.get('/api/customers', (req, res) => {
 
 app.post('/api/customers', (req, res) => {
     try {
-        const { name, phone, zalo } = req.body;
-        const result = db.prepare("INSERT INTO customers (name, phone, zalo) VALUES (?, ?, ?)").run(name, phone, zalo || phone);
-        res.json({ id: result.lastInsertRowid, name, phone, zalo });
+        const { name, phone, zalo, email } = req.body;
+        const result = db.prepare("INSERT INTO customers (name, phone, zalo, email) VALUES (?, ?, ?, ?)").run(name, phone, zalo || phone, email || null);
+        res.json({ id: result.lastInsertRowid, name, phone, zalo, email });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put('/api/customers/:id', (req, res) => {
     try {
-        const { name, phone, zalo } = req.body;
-        db.prepare("UPDATE customers SET name = ?, phone = ?, zalo = ? WHERE id = ?").run(name, phone, zalo, req.params.id);
+        const { name, phone, zalo, email } = req.body;
+        db.prepare("UPDATE customers SET name = ?, phone = ?, zalo = ?, email = ? WHERE id = ?").run(name, phone, zalo, email, req.params.id);
         res.json({ message: "Updated" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -122,6 +166,13 @@ app.put('/api/orders/:id', (req, res) => {
     try {
         const { status } = req.body;
         db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, req.params.id);
+        
+        // Nếu chuyển sang success -> Gửi email
+        if (status === 'success') {
+            const customer = getCustomerByOrderId(req.params.id);
+            if (customer) sendOrderSuccessEmail(customer.email, customer.name);
+        }
+
         res.json({ message: "Updated" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -156,8 +207,13 @@ app.post('/api/checkout', (req, res) => {
         // Tìm hoặc tạo customer
         let customer = db.prepare("SELECT id FROM customers WHERE phone = ?").get(phone);
         if (!customer) {
-            const result = db.prepare("INSERT INTO customers (name, phone, zalo) VALUES (?, ?, ?)").run(fullname, phone, phone);
+            const result = db.prepare("INSERT INTO customers (name, phone, zalo, email) VALUES (?, ?, ?, ?)").run(fullname, phone, phone, email || null);
             customer = { id: result.lastInsertRowid };
+        } else {
+            // Nếu đã có customer, cập nhật thêm email nếu chưa có
+            if (email) {
+                db.prepare("UPDATE customers SET email = ? WHERE id = ?").run(email, customer.id);
+            }
         }
 
         // Lấy sản phẩm mặc định (CapCut)
@@ -190,7 +246,11 @@ app.put('/api/checkout/:id/confirm', (req, res) => {
         // Trừ tồn kho
         db.prepare("UPDATE products SET stock = stock - 1 WHERE id = ?").run(order.product_id);
 
-        res.json({ success: true, message: 'Payment confirmed' });
+        // Gửi email thành công
+        const customer = getCustomerByOrderId(req.params.id);
+        if (customer) sendOrderSuccessEmail(customer.email, customer.name);
+
+        res.json({ success: true, message: 'Payment confirmed and email sent' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -229,7 +289,12 @@ app.post('/api/sepay-webhook', (req, res) => {
         if (pendingOrder) {
             db.prepare("UPDATE orders SET status = 'success' WHERE id = ?").run(pendingOrder.id);
             db.prepare("UPDATE products SET stock = stock - 1 WHERE id = ?").run(pendingOrder.product_id);
-            console.log(`[Sepay Webhook] Order #${pendingOrder.id} matches transaction and marked as SUCCESS.`);
+            
+            // Gửi email thành công cho đơn hàng khớp Webhook
+            const customer = getCustomerByOrderId(pendingOrder.id);
+            if (customer) sendOrderSuccessEmail(customer.email, customer.name);
+
+            console.log(`[Sepay Webhook] Order #${pendingOrder.id} matches transaction and marked as SUCCESS. Email sent to ${customer?.email}`);
         } else {
             console.log(`[Sepay Webhook] No pending orders found to match this transaction.`);
         }
