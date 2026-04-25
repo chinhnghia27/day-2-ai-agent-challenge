@@ -8,6 +8,39 @@ const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 app.use(express.json());
+
+// --- Admin Authentication Middleware ---
+const adminAuth = (req, res, next) => {
+    const auth = { login: process.env.ADMIN_USER || 'admin', password: process.env.ADMIN_PASSWORD || 'admin' };
+    const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+    if (login && password && login === auth.login && password === auth.password) {
+        return next();
+    }
+
+    res.set('WWW-Authenticate', 'Basic realm="Admin Panel"');
+    res.status(401).send('Authentication required.');
+};
+
+// Protect admin.html from direct access
+app.get('/admin.html', adminAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Serving static files (index.html, main.js, etc.)
+app.use((req, res, next) => {
+    const forbiddenFiles = ['.env', '.gitignore', 'package.json', 'package-lock.json', 'brain.db', 'ecosystem.config.js', 'resend_config.txt'];
+    const pathLower = req.path.toLowerCase();
+    
+    if (forbiddenFiles.some(file => pathLower.endsWith(file.toLowerCase()))) {
+        return res.status(403).send('Forbidden');
+    }
+    
+    if (pathLower === '/admin.html') return; // Handled by the explicit /admin.html route
+    next();
+});
+
 app.use(express.static(__dirname));
 
 // --- Email Helper ---
@@ -177,12 +210,12 @@ db.pragma('journal_mode = WAL');
 console.log('Connected to brain.db');
 
 // Phục vụ trang admin
-app.get('/admin', (req, res) => {
+app.get('/admin', adminAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
 // --------------------------------------------------------
-// API Sản phẩm (Products)
+// API Sản phẩm (Products) - PROTECTED (Write)
 // --------------------------------------------------------
 app.get('/api/products', (req, res) => {
     try {
@@ -191,7 +224,7 @@ app.get('/api/products', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', adminAuth, (req, res) => {
     try {
         const { name, price, description, stock } = req.body;
         const result = db.prepare("INSERT INTO products (name, price, description, stock) VALUES (?, ?, ?, ?)").run(name, price, description, stock || 0);
@@ -199,7 +232,7 @@ app.post('/api/products', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.put('/api/products/:id', (req, res) => {
+app.put('/api/products/:id', adminAuth, (req, res) => {
     try {
         const { name, price, description, stock } = req.body;
         db.prepare("UPDATE products SET name = ?, price = ?, description = ?, stock = ? WHERE id = ?").run(name, price, description, stock, req.params.id);
@@ -207,7 +240,7 @@ app.put('/api/products/:id', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', adminAuth, (req, res) => {
     try {
         db.prepare("DELETE FROM products WHERE id = ?").run(req.params.id);
         res.json({ message: "Deleted" });
@@ -215,16 +248,16 @@ app.delete('/api/products/:id', (req, res) => {
 });
 
 // --------------------------------------------------------
-// API Khách hàng (Customers)
+// API Khách hàng (Customers) - PROTECTED
 // --------------------------------------------------------
-app.get('/api/customers', (req, res) => {
+app.get('/api/customers', adminAuth, (req, res) => {
     try {
         const rows = db.prepare("SELECT * FROM customers").all();
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/customers', (req, res) => {
+app.post('/api/customers', adminAuth, (req, res) => {
     try {
         const { name, phone, zalo, email } = req.body;
         const result = db.prepare("INSERT INTO customers (name, phone, zalo, email) VALUES (?, ?, ?, ?)").run(name, phone, zalo || phone, email || null);
@@ -232,7 +265,7 @@ app.post('/api/customers', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.put('/api/customers/:id', (req, res) => {
+app.put('/api/customers/:id', adminAuth, (req, res) => {
     try {
         const { name, phone, zalo, email } = req.body;
         db.prepare("UPDATE customers SET name = ?, phone = ?, zalo = ?, email = ? WHERE id = ?").run(name, phone, zalo, email, req.params.id);
@@ -240,7 +273,7 @@ app.put('/api/customers/:id', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/customers/:id', (req, res) => {
+app.delete('/api/customers/:id', adminAuth, (req, res) => {
     try {
         db.prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
         res.json({ message: "Deleted" });
@@ -248,9 +281,9 @@ app.delete('/api/customers/:id', (req, res) => {
 });
 
 // --------------------------------------------------------
-// API Đơn hàng (Orders)
+// API Đơn hàng (Orders) - PROTECTED
 // --------------------------------------------------------
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', adminAuth, (req, res) => {
     try {
         const query = `
             SELECT o.id, o.amount, o.status, o.order_date,
@@ -266,7 +299,7 @@ app.get('/api/orders', (req, res) => {
 });
 
 // Logic: Khi add order mới -> trừ tồn kho của sản phẩm
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', adminAuth, (req, res) => {
     try {
         const { customer_id, product_id, amount, status } = req.body;
         const insertOrder = db.prepare("INSERT INTO orders (customer_id, product_id, amount, status) VALUES (?, ?, ?, ?)");
@@ -283,7 +316,7 @@ app.post('/api/orders', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.put('/api/orders/:id', (req, res) => {
+app.put('/api/orders/:id', adminAuth, (req, res) => {
     try {
         const { status } = req.body;
         db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, req.params.id);
@@ -298,7 +331,7 @@ app.put('/api/orders/:id', (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/orders/:id', (req, res) => {
+app.delete('/api/orders/:id', adminAuth, (req, res) => {
     try {
         db.prepare("DELETE FROM orders WHERE id = ?").run(req.params.id);
         res.json({ message: "Deleted" });
@@ -373,6 +406,7 @@ app.post('/api/checkout', async (req, res) => {
 });
 
 // Bước 2: Khách bấm "Tôi đã chuyển khoản" → chuyển trạng thái sang success
+// Lưu ý: API này được gọi từ frontend sau khi khách chuyển khoản xong (nếu poll lỗi hoặc khách muốn chủ động)
 app.put('/api/checkout/:id/confirm', (req, res) => {
     try {
         const order = db.prepare("SELECT id, product_id FROM orders WHERE id = ?").get(req.params.id);

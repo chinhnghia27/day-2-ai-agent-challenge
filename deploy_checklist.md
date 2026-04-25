@@ -37,10 +37,11 @@ Tôi đã tạo sẵn cho bạn các file sau để tối ưu quá trình deploy
    sudo apt install nginx
    ```
 
-### B. Cấu hình bảo mật (Quan trọng)
-- [ ] **Bảo mật Admin:** Hiện tại route `/admin` không có mật khẩu. Bất kỳ ai biết URL đều có thể xem và sửa dữ liệu khách hàng.
-    - *Giải pháp nhanh:* Sử dụng **Basic Auth** trong Nginx hoặc thêm Middleware xác thực vào `server.js`.
-- [ ] **Cấu hình Firewall:** Chỉ mở các port cần thiết (22 cho SSH, 80 cho HTTP, 443 cho HTTPS).
+### B. Cấu hình bảo mật (Đã thực hiện ✅)
+- [x] **Bảo mật Admin:** Đã thêm Middleware `adminAuth` vào `server.js`.
+    - Truy cập `/admin` hoặc các API quản trị sẽ yêu cầu Username/Password từ file `.env`.
+- [x] **Chặn truy cập file nhạy cảm:** Đã cấu hình Middleware chặn truy cập trực tiếp vào `.env`, `brain.db`, `package.json` qua trình duyệt.
+- [ ] **Cấu hình Firewall trên VPS:** Chỉ mở các port cần thiết (22 cho SSH, 80 cho HTTP, 443 cho HTTPS).
     ```bash
     sudo ufw allow 'Nginx Full'
     sudo ufw allow OpenSSH
