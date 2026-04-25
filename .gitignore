@@ -3,3 +3,4 @@ node_modules/
 *.pyc
 check_db.py
 setup_db.py
+resend_config.txt
