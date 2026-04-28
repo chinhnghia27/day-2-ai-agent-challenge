@@ -1,6 +1,3 @@
-const { Server } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/index.js");
-const { SSEServerTransport } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/sse.js");
-const { CallToolRequestSchema, ListToolsRequestSchema } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/types.js");
 const express = require("express");
 const Database = require("better-sqlite3");
 const fs = require("fs");
@@ -11,22 +8,10 @@ const { JSDOM } = require("jsdom");
 const dbPath = path.join(__dirname, "brain.db");
 const db = new Database(dbPath);
 
-// Khởi tạo MCP Server
-const server = new Server(
-    {
-        name: "website-manager-mcp",
-        version: "1.0.0",
-    },
-    {
-        capabilities: {
-            tools: {},
-        },
-    }
-);
+// --- Định nghĩa logic của các Tools ---
 
-// 1. Tool: get_daily_summary
 const getDailySummary = () => {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
     const dateQuery = `${today}%`;
 
     const leadCount = db.prepare("SELECT COUNT(*) as count FROM customers WHERE registration_date LIKE ?").get(dateQuery).count;
@@ -52,11 +37,9 @@ const getDailySummary = () => {
     } else {
         report += `✨ Không có đơn hàng pending nào.`;
     }
-
     return report;
 };
 
-// 2. Tool: find_customer_info
 const findCustomerInfo = (query) => {
     const searchTerm = `%${query}%`;
     const customers = db.prepare("SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ?").all(searchTerm, searchTerm);
@@ -76,18 +59,16 @@ const findCustomerInfo = (query) => {
             orders.forEach(o => {
                 result += `  + ID #${o.id}: ${o.amount.toLocaleString()}đ [${o.status.toUpperCase()}] (${new Date(o.order_date).toLocaleDateString()})\n`;
             });
-        } else {
-            result += `- Chưa có đơn hàng nào.\n`;
         }
         result += `---\n`;
     });
-
     return result;
 };
 
-// 3. Tool: edit_landing_page
 const editLandingPage = (selector, content, style) => {
     const htmlPath = path.join(__dirname, "index.html");
+    if (!fs.existsSync(htmlPath)) return "❌ Không tìm thấy file index.html";
+    
     const html = fs.readFileSync(htmlPath, "utf8");
     const dom = new JSDOM(html);
     const document = dom.window.document;
@@ -107,110 +88,98 @@ const editLandingPage = (selector, content, style) => {
     });
 
     fs.writeFileSync(htmlPath, dom.serialize());
-    return `✅ Đã cập nhật ${elements.length} phần tử khớp với "${selector}".`;
+    return `✅ Đã cập nhật thành công ${elements.length} phần tử.`;
 };
 
-// Đăng ký Tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: [
-            {
-                name: "get_daily_summary",
-                description: "Lấy báo cáo tóm tắt tình hình lead, đơn hàng và doanh thu trong ngày hôm nay.",
-                inputSchema: { type: "object", properties: {} },
-            },
-            {
-                name: "find_customer_info",
-                description: "Tìm kiếm thông tin khách hàng và lịch sử đơn hàng bằng tên hoặc số điện thoại.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        query: { type: "string", description: "Tên hoặc số điện thoại khách hàng" },
-                    },
-                    required: ["query"],
-                },
-            },
-            {
-                name: "edit_landing_page",
-                description: "Chỉnh sửa nội dung chữ hoặc style CSS của landing page (index.html).",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        selector: { type: "string", description: "CSS Selector (ví dụ: #hero-title, .btn-primary)" },
-                        content: { type: "string", description: "Nội dung chữ mới" },
-                        style: { type: "string", description: "Chuỗi CSS (ví dụ: color: blue; font-weight: bold;)" },
-                    },
-                    required: ["selector"],
-                },
-            },
-        ],
-    };
-});
+// --- HTTP Server (Streamable HTTP / JSON-RPC) ---
 
-// Xử lý gọi Tool
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    try {
-        if (name === "get_daily_summary") {
-            const result = getDailySummary();
-            return { content: [{ type: "text", text: result }] };
-        }
-
-        if (name === "find_customer_info") {
-            const result = findCustomerInfo(args.query);
-            return { content: [{ type: "text", text: result }] };
-        }
-
-        if (name === "edit_landing_page") {
-            const result = editLandingPage(args.selector, args.content, args.style);
-            return { content: [{ type: "text", text: result }] };
-        }
-
-        throw new Error(`Tool not found: ${name}`);
-    } catch (error) {
-        return {
-            content: [{ type: "text", text: `Lỗi: ${error.message}` }],
-            isError: true,
-        };
-    }
-});
-
-// --- HTTP Server cho SSE ---
 const app = express();
 app.use(express.json());
 
-let transport;
+// Endpoint chính cho goClaw (Streamable HTTP)
+app.post("/mcp", async (req, res) => {
+    const { method, params, id } = req.body;
 
-app.get("/sse", async (req, res) => {
-    console.log("[SSE] New connection");
-    transport = new SSEServerTransport("/messages", res);
-    await server.connect(transport);
+    console.log(`[MCP Request] Method: ${method}`);
 
-    // Xử lý khi ngắt kết nối
-    res.on("close", () => {
-        console.log("[SSE] Connection closed");
-        server.close();
-    });
-});
-
-app.post("/messages", async (req, res) => {
-    console.log("[Post] New message received");
-    if (transport) {
-        await transport.handlePostMessage(req, res);
-    } else {
-        res.status(400).send("No active SSE transport");
+    // 1. Khai báo danh sách tools (goClaw gọi khi bắt đầu kết nối)
+    if (method === "tools/list") {
+        return res.json({
+            jsonrpc: "2.0",
+            id,
+            result: {
+                tools: [
+                    {
+                        name: "get_daily_summary",
+                        description: "Lấy báo cáo tóm tắt tình hình lead, đơn hàng và doanh thu hôm nay.",
+                        inputSchema: { type: "object", properties: {} }
+                    },
+                    {
+                        name: "find_customer_info",
+                        description: "Tìm kiếm thông tin khách hàng và lịch sử đơn hàng bằng tên hoặc SĐT.",
+                        inputSchema: {
+                            type: "object",
+                            properties: {
+                                query: { type: "string", description: "Tên hoặc SĐT khách hàng" }
+                            },
+                            required: ["query"]
+                        }
+                    },
+                    {
+                        name: "edit_landing_page",
+                        description: "Chỉnh sửa nội dung chữ hoặc style CSS của landing page.",
+                        inputSchema: {
+                            type: "object",
+                            properties: {
+                                selector: { type: "string", description: "CSS Selector (ví dụ: #hero-title)" },
+                                content: { type: "string", description: "Nội dung chữ mới" },
+                                style: { type: "string", description: "Chuỗi CSS (ví dụ: color: blue;)" }
+                            },
+                            required: ["selector"]
+                        }
+                    }
+                ]
+            }
+        });
     }
+
+    // 2. Xử lý gọi tool
+    if (method === "tools/call") {
+        const { name, arguments: args } = params;
+        let responseText = "";
+
+        try {
+            if (name === "get_daily_summary") responseText = getDailySummary();
+            else if (name === "find_customer_info") responseText = findCustomerInfo(args.query);
+            else if (name === "edit_landing_page") responseText = editLandingPage(args.selector, args.content, args.style);
+            else throw new Error(`Tool not found: ${name}`);
+
+            return res.json({
+                jsonrpc: "2.0",
+                id,
+                result: {
+                    content: [{ type: "text", text: responseText }]
+                }
+            });
+        } catch (error) {
+            return res.json({
+                jsonrpc: "2.0",
+                id,
+                error: { code: -32603, message: error.message }
+            });
+        }
+    }
+
+    // Fallback cho các method khác
+    res.status(404).json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } });
 });
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-    res.json({ status: "ok", service: "mcp-server" });
-});
+// Health check
+app.get("/health", (req, res) => res.json({ status: "ok", type: "streamable-http" }));
 
 const PORT = 3001;
+// Lắng nghe 0.0.0.0 để đảm bảo goClaw có thể kết nối được kể cả qua IP Public
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`MCP SSE Server running on http://127.0.0.1:${PORT}`);
-    console.log(`SSE endpoint: http://127.0.0.1:${PORT}/sse`);
-    console.log(`Message endpoint: http://127.0.0.1:${PORT}/messages`);
+    console.log(`MCP Streamable-HTTP Server running on port ${PORT}`);
+    console.log(`Endpoint: http://127.0.0.1:${PORT}/mcp`);
 });
