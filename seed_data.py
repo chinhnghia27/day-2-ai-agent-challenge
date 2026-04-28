@@ -1,11 +1,16 @@
 import sqlite3
 import os
 
-db_path = 'brain.db'
+# Load environment variables (optional, manual parse for simple python scripts)
+def get_env_db_path():
+    if os.path.exists('.env'):
+        with open('.env') as f:
+            for line in f:
+                if line.startswith('DB_PATH='):
+                    return line.split('=')[1].strip()
+    return 'brain.db'
 
-if not os.path.exists(db_path):
-    print(f"Error: {db_path} not found.")
-    exit(1)
+db_path = get_env_db_path()
 
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()

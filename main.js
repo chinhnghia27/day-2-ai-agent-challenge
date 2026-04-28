@@ -1,4 +1,18 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // --- APP CONFIGURATION ---
+    let appConfig = {
+        BANK_ACC: '',
+        BANK_NAME: '',
+        GOOGLE_SCRIPT_URL: ''
+    };
+
+    try {
+        const configRes = await fetch('/api/config');
+        appConfig = await configRes.json();
+    } catch (err) {
+        console.error('Failed to load app config:', err);
+    }
+
     // Scroll animation functionality using IntersectionObserver
     const observerOptions = {
         threshold: 0.1,
@@ -93,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Payment info - Tạo QR
             const orderCode = 'CAPCUTMASTER';
-            const bank = 'BIDV';
-            const acc = '96247NGHIA27';
+            const bank = appConfig.BANK_NAME || 'BIDV';
+            const acc = appConfig.BANK_ACC || '96247NGHIA27';
             const qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&des=${orderCode}`;
 
             document.getElementById('qr-code-img').src = qrUrl;
@@ -145,13 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // Gửi song song data sang Google Sheets (backup)
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3A4h8qbFJV2u49KWB2kG_XuwuNc0IfDk_fCgOldxvjzcngwWHkWIUu2Zi-Qgd2c0uVg/exec';
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ ...data, orderCode: orderCode }),
-                headers: { 'Content-Type': 'application/json' }
-            }).catch(console.error);
+            const SCRIPT_URL = appConfig.GOOGLE_SCRIPT_URL;
+            if (SCRIPT_URL) {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ ...data, orderCode: orderCode }),
+                    headers: { 'Content-Type': 'application/json' }
+                }).catch(console.error);
+            }
 
         } catch (error) {
             alert('Có lỗi xảy ra, vui lòng thử lại sau.');

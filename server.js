@@ -11,7 +11,16 @@ app.use(express.json());
 
 // --- Admin Authentication Middleware ---
 const adminAuth = (req, res, next) => {
-    const auth = { login: process.env.ADMIN_USER || 'admin', password: process.env.ADMIN_PASSWORD || 'admin' };
+    const auth = { 
+        login: process.env.ADMIN_USER, 
+        password: process.env.ADMIN_PASSWORD 
+    };
+
+    if (!auth.login || !auth.password) {
+        console.error('CRITICAL: ADMIN_USER or ADMIN_PASSWORD not set in environment.');
+        return res.status(500).send('Server configuration error.');
+    }
+
     const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
     const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
 
@@ -205,13 +214,22 @@ setInterval(async () => {
 }, 60000); // Mỗi phút kiểm tra 1 lần
 
 // Connect DB
-const db = new Database(path.join(__dirname, 'brain.db'));
+const db = new Database(path.join(__dirname, process.env.DB_PATH || 'brain.db'));
 db.pragma('journal_mode = WAL');
-console.log('Connected to brain.db');
+console.log(`Connected to database at ${process.env.DB_PATH || 'brain.db'}`);
 
 // Phục vụ trang admin
 app.get('/admin', adminAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// API Config cho Frontend (Chỉ các giá trị không nhạy cảm)
+app.get('/api/config', (req, res) => {
+    res.json({
+        BANK_ACC: process.env.BANK_ACC,
+        BANK_NAME: process.env.BANK_NAME,
+        GOOGLE_SCRIPT_URL: process.env.GOOGLE_SCRIPT_URL
+    });
 });
 
 // --------------------------------------------------------
