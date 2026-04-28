@@ -120,6 +120,12 @@ app.post("/mcp", async (req, res) => {
         });
     }
 
+    // 0.5 Xử lý lệnh initialized (Thông báo hoàn tất bắt tay - không cần trả về body)
+    if (method === "notifications/initialized") {
+        console.log("[MCP] Handshake complete");
+        return res.status(200).end();
+    }
+
     // 1. Khai báo danh sách tools
     if (method === "tools/list") {
         return res.json({
