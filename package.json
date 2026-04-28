@@ -19,9 +19,11 @@
   },
   "homepage": "https://github.com/chinhnghia27/day-2-ai-agent-challenge#readme",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsdom": "^29.1.0",
     "resend": "^6.11.0"
   }
 }
