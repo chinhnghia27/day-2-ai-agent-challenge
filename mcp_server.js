@@ -1,6 +1,7 @@
 const { Server } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/index.js");
-const { StdioServerTransport } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/stdio.js");
+const { SSEServerTransport } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/sse.js");
 const { CallToolRequestSchema, ListToolsRequestSchema } = require("./node_modules/@modelcontextprotocol/sdk/dist/cjs/types.js");
+const express = require("express");
 const Database = require("better-sqlite3");
 const fs = require("fs");
 const path = require("path");
@@ -97,7 +98,6 @@ const editLandingPage = (selector, content, style) => {
     elements.forEach(el => {
         if (content) el.textContent = content;
         if (style) {
-            // style string format: "color: red; font-size: 20px;"
             const styles = style.split(';').filter(s => s.trim());
             styles.forEach(s => {
                 const [prop, val] = s.split(':').map(i => i.trim());
@@ -176,14 +176,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 });
 
-// Khởi chạy Server
-async function main() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("Website Manager MCP Server running on stdio");
-}
+// --- HTTP Server cho SSE ---
+const app = express();
+app.use(express.json());
 
-main().catch((error) => {
-    console.error("Fatal error in main():", error);
-    process.exit(1);
+let transport;
+
+app.get("/sse", async (req, res) => {
+    console.log("[SSE] New connection");
+    transport = new SSEServerTransport("/messages", res);
+    await server.connect(transport);
+
+    // Xử lý khi ngắt kết nối
+    res.on("close", () => {
+        console.log("[SSE] Connection closed");
+        server.close();
+    });
+});
+
+app.post("/messages", async (req, res) => {
+    console.log("[Post] New message received");
+    if (transport) {
+        await transport.handlePostMessage(req, res);
+    } else {
+        res.status(400).send("No active SSE transport");
+    }
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.json({ status: "ok", service: "mcp-server" });
+});
+
+const PORT = 3001;
+app.listen(PORT, "127.0.0.1", () => {
+    console.log(`MCP SSE Server running on http://127.0.0.1:${PORT}`);
+    console.log(`SSE endpoint: http://127.0.0.1:${PORT}/sse`);
+    console.log(`Message endpoint: http://127.0.0.1:${PORT}/messages`);
 });
