@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const Database = require("better-sqlite3");
 const fs = require("fs");
@@ -98,6 +99,18 @@ app.use(express.json());
 
 // Endpoint chính cho goClaw (Streamable HTTP)
 app.post("/mcp", async (req, res) => {
+    // Kiểm tra API Key để bảo mật
+    const apiKey = req.headers["x-api-key"];
+    const secretKey = process.env.MCP_API_KEY || "chinhnghia_default_secret_123";
+
+    if (apiKey !== secretKey) {
+        console.warn(`[Security] Unauthorized access attempt from ${req.ip}`);
+        return res.status(401).json({
+            jsonrpc: "2.0",
+            error: { code: -32000, message: "Unauthorized: Invalid API Key" }
+        });
+    }
+
     const { method, params, id } = req.body;
 
     console.log(`[MCP Request] Method: ${method}`);
