@@ -209,7 +209,7 @@ app.get("/health", (req, res) => {
 });
 
 const PORT = 3001;
-app.listen(PORT, "127.0.0.1", () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`MCP SSE Server running on http://127.0.0.1:${PORT}`);
     console.log(`SSE endpoint: http://127.0.0.1:${PORT}/sse`);
     console.log(`Message endpoint: http://127.0.0.1:${PORT}/messages`);
