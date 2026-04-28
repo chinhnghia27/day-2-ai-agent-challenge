@@ -170,8 +170,12 @@ app.post("/mcp", async (req, res) => {
         }
     }
 
-    // Fallback cho các method khác
     res.status(404).json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } });
+});
+
+// Thêm GET /mcp để tránh lỗi 404 khi goClaw test connection
+app.get("/mcp", (req, res) => {
+    res.send("MCP Server is ready! Please use POST for JSON-RPC requests.");
 });
 
 // Health check
