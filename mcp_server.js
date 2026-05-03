@@ -72,7 +72,7 @@ app.post("/mcp", async (req, res) => {
                         }
                     },
                     {
-                        name: "get_new_survey_signals",
+                        name: "check_survey_leads",
                         description: "Kiểm tra và lấy danh sách các khách hàng mới từ Google Form (Survey) chưa được thông báo.",
                         inputSchema: { type: "object", properties: {} }
                     },
@@ -98,8 +98,8 @@ app.post("/mcp", async (req, res) => {
     if (method === "tools/call") {
         const toolName = params.name;
 
-        // --- Tool: get_new_survey_signals ---
-        if (toolName === "get_new_survey_signals") {
+        // --- Tool: check_survey_leads ---
+        if (toolName === "check_survey_leads") {
             try {
                 const newLeads = db.prepare("SELECT name, phone, registration_date, notes FROM customers WHERE source = 'survey' AND is_notified = 0").all();
 
