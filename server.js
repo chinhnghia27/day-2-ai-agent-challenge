@@ -494,5 +494,35 @@ app.post('/api/sepay-webhook', (req, res) => {
     }
 });
 
+// --------------------------------------------------------
+// API Survey: Nhận dữ liệu từ Google Form
+// --------------------------------------------------------
+app.post('/api/survey', (req, res) => {
+    try {
+        const { name, phone, email } = req.body;
+        if (!phone) return res.status(400).json({ error: 'Phone is required' });
+
+        // Kiểm tra xem khách đã tồn tại chưa
+        const existing = db.prepare("SELECT id FROM customers WHERE phone = ?").get(phone);
+
+        if (existing) {
+            db.prepare("UPDATE customers SET source = 'survey', is_notified = 0 WHERE id = ?").run(existing.id);
+            console.log(`[Survey] Updated existing customer: ${phone}`);
+        } else {
+            db.prepare("INSERT INTO customers (name, phone, email, source, is_notified) VALUES (?, ?, ?, 'survey', 0)").run(
+                name || 'Khách khảo sát',
+                phone,
+                email || null
+            );
+            console.log(`[Survey] New entry from ${phone}`);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Survey API Error]:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
