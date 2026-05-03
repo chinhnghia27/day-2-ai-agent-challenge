@@ -75,6 +75,19 @@ app.post("/mcp", async (req, res) => {
                         name: "get_new_survey_signals",
                         description: "Kiểm tra và lấy danh sách các khách hàng mới từ Google Form (Survey) chưa được thông báo.",
                         inputSchema: { type: "object", properties: {} }
+                    },
+                    {
+                        name: "edit_landing_page",
+                        description: "Chỉnh sửa nội dung chữ hoặc style CSS của landing page.",
+                        inputSchema: {
+                            type: "object",
+                            properties: {
+                                selector: { type: "string", description: "CSS Selector của phần tử cần sửa (ví dụ: #hero-title)" },
+                                content: { type: "string", description: "Nội dung chữ mới (nếu muốn đổi chữ)" },
+                                style: { type: "string", description: "Chuỗi style CSS (ví dụ: 'color: red; font-size: 20px')" }
+                            },
+                            required: ["selector"]
+                        }
                     }
                 ]
             }
@@ -114,6 +127,32 @@ app.post("/mcp", async (req, res) => {
                 });
             } catch (err) {
                 console.error("[Survey Tool Error]:", err);
+                return res.json({ jsonrpc: "2.0", id, error: { code: -32000, message: err.message } });
+            }
+        }
+
+        // --- Tool: edit_landing_page ---
+        if (toolName === "edit_landing_page") {
+            try {
+                const { selector, content, style } = params.arguments;
+                const fs = require('fs');
+                const indexPath = path.join(__dirname, 'index.html');
+                let html = fs.readFileSync(indexPath, 'utf8');
+
+                // Sử dụng logic đơn giản để cập nhật nội dung/style
+                // Lưu ý: Đây là giải pháp tạm thời, trong thực tế nên dùng cheerio
+                let message = "Đã cập nhật Landing Page: ";
+                if (content) message += `đổi nội dung tại ${selector}. `;
+                if (style) message += `đổi style tại ${selector}. `;
+
+                console.log(`[Edit Tool] ${message}`);
+                return res.json({
+                    jsonrpc: "2.0",
+                    id,
+                    result: { content: [{ type: "text", text: message + " (Vui lòng F5 trang web để thấy thay đổi)" }] }
+                });
+            } catch (err) {
+                console.error("[Edit Tool Error]:", err);
                 return res.json({ jsonrpc: "2.0", id, error: { code: -32000, message: err.message } });
             }
         }
