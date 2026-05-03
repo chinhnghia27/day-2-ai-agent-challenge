@@ -50,47 +50,47 @@ app.post("/mcp", async (req, res) => {
 
     // 4. Xử lý tools/list (Danh sách tool)
     if (method === "tools/list") {
+        const tools = [
+            {
+                name: "get_daily_summary",
+                description: "Lấy báo cáo tóm tắt về số lead và đơn hàng thành công trong ngày hôm nay.",
+                inputSchema: { type: "object", properties: {} }
+            },
+            {
+                name: "find_customer_info",
+                description: "Tìm kiếm thông tin khách hàng theo tên hoặc số điện thoại.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        query: { type: "string", description: "Tên hoặc SĐT khách hàng" }
+                    },
+                    required: ["query"]
+                }
+            },
+            {
+                name: "check_survey_leads",
+                description: "Kiểm tra và lấy danh sách các khách hàng mới từ Google Form (Survey) chưa được thông báo.",
+                inputSchema: { type: "object", properties: {} }
+            },
+            {
+                name: "edit_landing_page",
+                description: "Chỉnh sửa nội dung chữ hoặc style CSS của landing page.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        selector: { type: "string", description: "CSS Selector của phần tử cần sửa (ví dụ: #hero-title)" },
+                        content: { type: "string", description: "Nội dung chữ mới (nếu muốn đổi chữ)" },
+                        style: { type: "string", description: "Chuỗi style CSS (ví dụ: 'color: red; font-size: 20px')" }
+                    },
+                    required: ["selector"]
+                }
+            }
+        ];
+        console.log(`[MCP] Sending tool list: ${tools.map(t => t.name).join(', ')}`);
         return res.json({
             jsonrpc: "2.0",
             id,
-            result: {
-                tools: [
-                    {
-                        name: "get_daily_summary",
-                        description: "Lấy báo cáo tóm tắt về số lead và đơn hàng thành công trong ngày hôm nay.",
-                        inputSchema: { type: "object", properties: {} }
-                    },
-                    {
-                        name: "find_customer_info",
-                        description: "Tìm kiếm thông tin khách hàng theo tên hoặc số điện thoại.",
-                        inputSchema: {
-                            type: "object",
-                            properties: {
-                                query: { type: "string", description: "Tên hoặc SĐT khách hàng" }
-                            },
-                            required: ["query"]
-                        }
-                    },
-                    {
-                        name: "check_survey_leads",
-                        description: "Kiểm tra và lấy danh sách các khách hàng mới từ Google Form (Survey) chưa được thông báo.",
-                        inputSchema: { type: "object", properties: {} }
-                    },
-                    {
-                        name: "edit_landing_page",
-                        description: "Chỉnh sửa nội dung chữ hoặc style CSS của landing page.",
-                        inputSchema: {
-                            type: "object",
-                            properties: {
-                                selector: { type: "string", description: "CSS Selector của phần tử cần sửa (ví dụ: #hero-title)" },
-                                content: { type: "string", description: "Nội dung chữ mới (nếu muốn đổi chữ)" },
-                                style: { type: "string", description: "Chuỗi style CSS (ví dụ: 'color: red; font-size: 20px')" }
-                            },
-                            required: ["selector"]
-                        }
-                    }
-                ]
-            }
+            result: { tools }
         });
     }
 
