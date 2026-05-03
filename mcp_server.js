@@ -101,7 +101,7 @@ app.post("/mcp", async (req, res) => {
         // --- Tool: get_new_survey_signals ---
         if (toolName === "get_new_survey_signals") {
             try {
-                const newLeads = db.prepare("SELECT name, phone, registration_date FROM customers WHERE source = 'survey' AND is_notified = 0").all();
+                const newLeads = db.prepare("SELECT name, phone, registration_date, notes FROM customers WHERE source = 'survey' AND is_notified = 0").all();
 
                 if (newLeads.length === 0) {
                     console.log("[Survey Tool] No unnotified leads.");
@@ -116,7 +116,19 @@ app.post("/mcp", async (req, res) => {
                 
                 let responseText = `🚨 CÓ ${newLeads.length} TÍN HIỆU SURVEY MỚI:\n\n`;
                 newLeads.forEach((lead, i) => {
-                    responseText += `${i + 1}. Khách hàng: ${lead.name}\n   SĐT: ${lead.phone}\n   Lúc: ${lead.registration_date}\n\n`;
+                    responseText += `${i + 1}. Khách hàng: ${lead.name}\n   SĐT: ${lead.phone}\n   Lúc: ${lead.registration_date}\n`;
+                    if (lead.notes) {
+                        try {
+                            const details = JSON.parse(lead.notes);
+                            responseText += `   Chi tiết khảo sát:\n`;
+                            for (const key in details) {
+                                responseText += `   - ${key}: ${details[key]}\n`;
+                            }
+                        } catch (e) {
+                            responseText += `   Ghi chú: ${lead.notes}\n`;
+                        }
+                    }
+                    responseText += `\n`;
                 });
 
                 console.log(`[Survey Tool] Found ${newLeads.length} leads and notified.`);

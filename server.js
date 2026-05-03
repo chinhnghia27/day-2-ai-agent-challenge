@@ -499,21 +499,21 @@ app.post('/api/sepay-webhook', (req, res) => {
 // --------------------------------------------------------
 app.post('/api/survey', (req, res) => {
     try {
-        const { name, phone, email } = req.body;
-        if (!phone) return res.status(400).json({ error: 'Phone is required' });
-
-        // Kiểm tra xem khách đã tồn tại chưa
-        const existing = db.prepare("SELECT id FROM customers WHERE phone = ?").get(phone);
-
+        const { name, phone, email, survey_data } = req.body;
+        console.log(`[Survey] Received data from ${name || 'unknown'}`);
+        
+        const notes = survey_data ? JSON.stringify(survey_data) : null;
+        
+        // Kiểm tra xem khách hàng đã tồn tại chưa (theo SĐT)
+        const existing = db.prepare('SELECT id FROM customers WHERE phone = ?').get(phone);
+        
         if (existing) {
-            db.prepare("UPDATE customers SET source = 'survey', is_notified = 0 WHERE id = ?").run(existing.id);
-            console.log(`[Survey] Updated existing customer: ${phone}`);
+            db.prepare('UPDATE customers SET name = ?, email = ?, is_notified = 0, source = ?, notes = ? WHERE id = ?')
+                .run(name, email, 'survey', notes, existing.id);
+            console.log(`[Survey] Updated existing customer: ${name}`);
         } else {
-            db.prepare("INSERT INTO customers (name, phone, email, source, is_notified) VALUES (?, ?, ?, 'survey', 0)").run(
-                name || 'Khách khảo sát',
-                phone,
-                email || null
-            );
+            db.prepare('INSERT INTO customers (name, phone, email, source, is_notified, notes) VALUES (?, ?, ?, ?, 0, ?)')
+                .run(name, phone, email, 'survey', notes);
             console.log(`[Survey] New entry from ${phone}`);
         }
 
