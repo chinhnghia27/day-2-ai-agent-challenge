@@ -111,48 +111,8 @@ app.post("/mcp", async (req, res) => {
         });
     }
 
-    // 4. Kiểm tra tín hiệu Survey mới
-    if (req.body.method === "tools/call" && req.body.params.name === "get_new_survey_signals") {
-        try {
-            // 1. Lấy danh sách khách hàng mới từ survey
-            const newLeads = db.prepare("SELECT name, phone, registration_date FROM customers WHERE source = 'survey' AND is_notified = 0").all();
-
-            if (newLeads.length === 0) {
-                return res.json({
-                    jsonrpc: "2.0",
-                    id: req.body.id,
-                    result: { content: [{ type: "text", text: "Hiện không có tín hiệu survey mới nào." }] }
-                });
-            }
-
-            // 2. Cập nhật đã thông báo để không báo trùng
-            const updateStmt = db.prepare("UPDATE customers SET is_notified = 1 WHERE source = 'survey' AND is_notified = 0");
-            updateStmt.run();
-
-            // 3. Format tin nhắn
-            let responseText = `🚨 CÓ ${newLeads.length} TÍN HIỆU SURVEY MỚI:\n\n`;
-            newLeads.forEach((lead, i) => {
-                responseText += `${i + 1}. Khách hàng: ${lead.name}\n   SĐT: ${lead.phone}\n   Lúc: ${lead.registration_date}\n\n`;
-            });
-
-            return res.json({
-                jsonrpc: "2.0",
-                id: req.body.id,
-                result: { content: [{ type: "text", text: responseText }] }
-            });
-
-        } catch (err) {
-            return res.json({
-                jsonrpc: "2.0",
-                id: req.body.id,
-                error: { code: -32000, message: err.message }
-            });
-        }
-    }
-
     const { method, params, id } = req.body;
-
-    console.log(`[MCP Request] Method: ${method}`);
+    console.log(`[MCP Request] Method: ${method}, Tool: ${params?.name || 'none'}`);
 
     // 0. Xử lý lệnh initialize (Bắt tay ban đầu)
     if (method === "initialize") {
