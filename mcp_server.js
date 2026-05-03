@@ -67,7 +67,9 @@ app.post("/mcp", async (req, res) => {
 
     // 5. Xử lý tools/call (Gọi tool)
     if (method === "tools/call") {
-        const toolName = params.name;
+        // Gọt bỏ tiền tố nếu có (ví dụ: my_business__check_survey_leads -> check_survey_leads)
+        const toolName = params.name.includes('__') ? params.name.split('__').pop() : params.name;
+        console.log(`[MCP Request] Method: tools/call, Tool: ${toolName} (Original: ${params.name})`);
 
         // --- Tool: check_survey_leads ---
         if (toolName === "check_survey_leads") {
