@@ -52,8 +52,8 @@ app.post("/mcp", async (req, res) => {
     if (method === "tools/list") {
         const tools = [
             {
-                name: "check_survey_leads",
-                description: "Kiểm tra và lấy danh sách các khách hàng mới từ Google Form (Survey) chưa được thông báo.",
+                name: "nghia_fetch_new_leads",
+                description: "Lấy danh sách khách hàng mới nhất từ Google Form khảo sát.",
                 inputSchema: { type: "object", properties: {} }
             }
         ];
@@ -71,8 +71,8 @@ app.post("/mcp", async (req, res) => {
         const toolName = params.name.includes('__') ? params.name.split('__').pop() : params.name;
         console.log(`[MCP Request] Method: tools/call, Tool: ${toolName} (Original: ${params.name})`);
 
-        // --- Tool: check_survey_leads ---
-        if (toolName === "check_survey_leads") {
+        // --- Tool: nghia_fetch_new_leads ---
+        if (toolName === "nghia_fetch_new_leads") {
             try {
                 const newLeads = db.prepare("SELECT name, phone, registration_date, notes FROM customers WHERE source = 'survey' AND is_notified = 0").all();
 
